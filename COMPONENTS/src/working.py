@@ -11,11 +11,12 @@ load_dotenv()
 
 
 # token_notion
-token_notion = os.getenv("NOTION_API_KEY")
-database_id = '932b90e793db484f93daaf2bda259819'
+TOKEN_NOTION = os.getenv("NOTION_API_KEY")
+
+# database_id
+DATABASE_ID = os.getenv("DATABASE_ID")
 
 # token_openai
-token_openai = os.getenv("OPENAI_API_KEY")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
@@ -137,9 +138,9 @@ def update_page(client, df):
 
 
 def main():
-    client = Client(auth=token_notion)
+    client = Client(auth=TOKEN_NOTION)
 
-    df = read_df(client, database_id)
+    df = read_df(client, DATABASE_ID)
 
     update_page(client, df)
 
