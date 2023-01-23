@@ -95,13 +95,13 @@ def read_page(client, notion_page_id):
 
     simple_blocks = create_simple_blocks_from_content(client, content)
 
-    return simple_blocks
+    return json.dumps(simple_blocks)
 
 
-def ai_response(ai_prompt):
+def ai_response(ai_prompt, instructions: str = ""):
     response = openai.Completion.create(
       model="text-davinci-003",
-      prompt=json.dumps(ai_prompt),
+      prompt=f"{instructions},{ai_prompt}",
       temperature=0.5,
       max_tokens=5,
       top_p=0.3,
@@ -130,7 +130,13 @@ def update_page(client, df):
             ai_prompt = read_page(client, page["id"])
 
             response = ai_response(ai_prompt)
+            title = ai_response(
+                response,
+                instructions="Write a SEO friendly Title for this article"
+                )
 #             response = "Hello World"
+
+            write_text(client, page["id"], title, "heading_1")
 
             write_text(client, page["id"], response, "paragraph")
 
