@@ -20,26 +20,24 @@ DATABASE_ID = os.getenv("DATABASE_ID")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-def write_text(client, page_id, text, type):
+def write_text(client, page_id, text, type_name):
     client.blocks.children.append(
         block_id=page_id,
         children=[
             {
                 "object": "block",
-                "type": type,
-                type: {
+                "type": type_name,
+                type_name: {
                     "rich_text": [
                         {
                             "type": "text",
                             "text": {
                                 "content": text
-                            }
+                                }
                         }
                     ]
-
                 }
             }
-
         ]
     )
 
@@ -73,7 +71,7 @@ def create_simple_blocks_from_content(client, content):
             return page_simple_blocks
 
         simple_block = {
-            # 'id': block_id,
+            # id': block_id,
             'type': block_type,
             'text': rich_text[0]['plain_text']
         }
@@ -98,18 +96,17 @@ def read_page(client, notion_page_id):
     return json.dumps(simple_blocks)
 
 
-def ai_response(ai_prompt, instructions: str = ""):
+def ai_response(ai_prompt, instructions="", tokens=200):
     response = openai.Completion.create(
       model="text-davinci-003",
       prompt=f"{instructions},{ai_prompt}",
       temperature=0.5,
-      max_tokens=5,
+      max_tokens=tokens,
       top_p=0.3,
       frequency_penalty=0.5,
       presence_penalty=0
     )
-
-    return response["choices"][0]["text"].strip("/n")
+    return response["choices"][0]["text"].strip()
 
 
 def update_status(client, page_id):
@@ -118,29 +115,23 @@ def update_status(client, page_id):
         properties={
             'Status': {
                 'status': {
-                    'name': 'Done'}},
-                    }
-
+                    'name': 'Done'
+                }
+            },
+        }
     )
 
 
-def update_page(client, df):
-    for page in df:
-        if ai_ready(page):
-            ai_prompt = read_page(client, page["id"])
+def update_page(client, page):
+    ai_prompt = read_page(client, page["id"])
 
-            response = ai_response(ai_prompt)
-            title = ai_response(
-                response,
-                instructions="Write a SEO friendly Title for this article"
-                )
-#             response = "Hello World"
+    article = ai_response(ai_prompt)
 
-            write_text(client, page["id"], title, "heading_1")
+    print(f"article='{article}'")
 
-            write_text(client, page["id"], response, "paragraph")
+    write_text(client, page["id"], article, "paragraph")
 
-            update_status(client, page["id"])
+    update_status(client, page["id"])
 
 
 def main():
@@ -148,7 +139,13 @@ def main():
 
     df = read_df(client, DATABASE_ID)
 
-    update_page(client, df)
+    # Filter a list of pages ready for processing
+    df_ready = [page for page in df if ai_ready(page)]
+
+    print(f"{len(df_ready)} pages need to be processed")
+
+    for page in df_ready:
+        update_page(client, page)
 
 
 if __name__ == '__main__':
